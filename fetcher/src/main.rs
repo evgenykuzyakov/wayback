@@ -1,12 +1,13 @@
 use borsh::{BorshDeserialize, BorshSerialize};
+use common::{load_last_history, Board, History, BOARD_HEIGHT};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fs::File;
+use std::io;
 use std::io::{ErrorKind, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::{fs, io};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JsonResponse<T> {
@@ -36,34 +37,6 @@ pub struct StateKeyValues {
     key: String,
     proof: Vec<String>,
     value: String,
-}
-
-pub const BOARD_WIDTH: u32 = 50;
-pub const BOARD_HEIGHT: u32 = 50;
-pub const TOTAL_NUM_PIXELS: u32 = BOARD_WIDTH * BOARD_HEIGHT;
-pub const BERRY_GENESIS_BLOCK: u64 = 21793900;
-
-#[derive(
-    BorshDeserialize,
-    BorshSerialize,
-    Serialize,
-    Deserialize,
-    Copy,
-    Eq,
-    PartialEq,
-    Clone,
-    Default,
-    Debug,
-)]
-pub struct Pixel {
-    pub color: u32,
-    pub owner_id: u32,
-}
-
-#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
-pub struct Board {
-    pixels: Vec<Vec<Pixel>>,
-    block_height: u64,
 }
 
 fn fetch_board(block_height: u64) -> io::Result<Board> {
@@ -133,45 +106,15 @@ fn fetch_board_with_retries(block_height: u64) -> Option<Board> {
     None
 }
 
-#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Debug)]
-pub struct History {
-    pub boards: Vec<Board>,
-    pub last_fetched_block: u64,
-}
-
 pub const FAST_JUMP_SIZE: u64 = 60;
+pub const BERRY_GENESIS_BLOCK: u64 = 21793900;
 
 fn main() {
-    let _ = fs::create_dir("history");
+    let mut history = load_last_history().unwrap_or_else(|| History {
+        boards: vec![fetch_board_with_retries(BERRY_GENESIS_BLOCK).unwrap()],
+        last_fetched_block: BERRY_GENESIS_BLOCK,
+    });
 
-    let mut entries = fs::read_dir("history")
-        .unwrap()
-        .map(|res| res.map(|e| e.path()))
-        .collect::<Result<Vec<_>, io::Error>>()
-        .unwrap();
-
-    // The order in which `read_dir` returns entries is not guaranteed. If reproducible
-    // ordering is required the entries should be explicitly sorted.
-
-    entries.sort();
-    if entries.len() > 3 {
-        let first_entry = entries.first().unwrap();
-        println!("Deleting oldest history {}", first_entry.to_str().unwrap());
-        fs::remove_file(first_entry).unwrap();
-    }
-
-    let mut history = if let Some(last_history_file) = entries.last() {
-        println!(
-            "Recovering history from {}",
-            last_history_file.to_str().unwrap()
-        );
-        History::try_from_slice(&fs::read(last_history_file).unwrap()).unwrap()
-    } else {
-        History {
-            boards: vec![fetch_board_with_retries(BERRY_GENESIS_BLOCK).unwrap()],
-            last_fetched_block: BERRY_GENESIS_BLOCK,
-        }
-    };
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
 
