@@ -1,0 +1,8 @@
+#IDE
+.idea
+
+target
+history
+
+# OS X
+.DS_Store
