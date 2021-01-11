@@ -124,7 +124,7 @@ fn main() {
     .expect("Error setting Ctrl-C handler");
 
     let mut block_height = history.last_fetched_block + 1;
-    let final_block_height = 24852466;
+    let final_block_height = 27337102;
     while running.load(Ordering::SeqCst) && block_height <= final_block_height {
         println!(
             "#{} Fast search. History has {} boards",

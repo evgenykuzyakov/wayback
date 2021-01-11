@@ -2,7 +2,7 @@ use common::{load_last_history, Board, BOARD_HEIGHT, BOARD_WIDTH};
 use image::ImageBuffer;
 use std::fs;
 
-pub const IMG_SCALE: u32 = 10;
+pub const IMG_SCALE: u32 = 12;
 pub const IMG_WIDTH: u32 = BOARD_WIDTH * IMG_SCALE;
 pub const IMG_HEIGHT: u32 = BOARD_HEIGHT * IMG_SCALE;
 
@@ -28,4 +28,12 @@ fn main() {
     // To join images into a video use the following command:
     //
     // ffmpeg -r 60 -i images/%06d.png -c:v libx264 -vf "fps=60,format=yuv420p" -crf 3 video_high.mp4
+    //
+    // Put video on top of background with scaling
+    //
+    // ffmpeg -loop 1 -i bg.png -i video_high.mp4 -filter_complex "overlay=679:251:shortest=1,fps=60" -c:v libx264 -crf 3  output.mp4 -y
+    //
+    // Join audio
+    //
+    // ffmpeg -i output.mp4 -i output.mp3 -shortest -c:v copy -c:a aac -b:a 320k final.mp4
 }
