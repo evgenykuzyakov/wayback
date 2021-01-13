@@ -4,7 +4,8 @@
 target
 history
 images
-video_high.mp4
+images_v2
+content
 
 # OS X
 .DS_Store
